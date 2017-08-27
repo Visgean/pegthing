@@ -260,8 +260,8 @@
 
 (defn prompt-rows
   []
-  (println "How many rows? [5]")
-  (let [rows (Integer. (get-input 5))
+  (println "How many rows? [5], max is 6")
+  (let [rows (min 6 (Integer. (get-input 5)))
         board (new-board rows)]
     (prompt-empty-peg board)))
 
