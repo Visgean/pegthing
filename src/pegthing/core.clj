@@ -11,8 +11,8 @@
   "Generates lazy sequence of triangular numbers"
   ([] (tri* 0 1))
   ([sum n]
-     (let [new-sum (+ sum n)]
-       (cons new-sum (lazy-seq (tri* new-sum (inc n)))))))
+   (let [new-sum (+ sum n)]
+     (cons new-sum (lazy-seq (tri* new-sum (inc n)))))))
 
 (def tri (tri*))
 
@@ -146,7 +146,9 @@
   {:red   "[31m"
    :green "[32m"
    :blue  "[34m"
-   :reset "[0m"})
+   :reset "[0m"
+   :clean "[033c"})
+
 
 (defn ansi
   "Produce a string which will apply an ansi style"
@@ -160,10 +162,10 @@
 
 (defn render-pos
   [board pos]
-  (str (nth letters (dec pos))
-       (if (get-in board [pos :pegged])
-         (colorize "0" :blue)
-         (colorize "-" :red))))
+  (let [num (nth letters (dec pos))]
+    (if (get-in board [pos :pegged])
+        (colorize num :blue)
+        (colorize num :red))))
 
 (defn row-positions
   "Return all positions in the given row"
@@ -180,7 +182,7 @@
 (defn render-row
   [board row-num]
   (str (row-padding row-num (:rows board))
-       (clojure.string/join " " (map (partial render-pos board) (row-positions row-num)))))
+       (clojure.string/join "  " (map (partial render-pos board) (row-positions row-num)))))
 
 (defn print-board
   [board]
@@ -199,10 +201,10 @@
   "Waits for user to enter text and hit enter, then cleans the input"
   ([] (get-input ""))
   ([default]
-     (let [input (clojure.string/trim (read-line))]
-       (if (empty? input)
-         default
-         (clojure.string/lower-case input)))))
+   (let [input (clojure.string/trim (read-line))]
+     (if (empty? input)
+       default
+       (clojure.string/lower-case input)))))
 
 (defn characters-as-strings
   "Given a string, return a collection consisting of each individual
@@ -210,9 +212,16 @@
   [string]
   (re-seq #"[a-zA-Z]" string))
 
+(defn clean-screen
+  "Cleans the screen and mvoes cursor to the top"
+  []
+  (print (str (char 27) "[2J")) ; clear screen
+  (print (str (char 27) "[;H"))) ; move cursor to the top left corner of the screen
+
 (defn prompt-move
   [board]
-  (println "\nHere's your board:")
+  (clean-screen)
+  (println "Here's your board:")
   (print-board board)
   (println "Move from where to where? Enter two letters:")
   (let [input (map letter->pos (characters-as-strings (get-input)))]
@@ -231,6 +240,7 @@
 (defn game-over
   [board]
   (let [remaining-pegs (count (filter :pegged (vals board)))]
+    (clean-screen)
     (println "Game over! You had" remaining-pegs "pegs left:")
     (print-board board)
     (println "Play again? y/n [y]")
