@@ -160,12 +160,30 @@
   [text color]
   (str (ansi color) text (ansi :reset)))
 
+(defn num-len
+  "returs length of base 10 representation of number"
+  [num]
+  (count (str num)))
+
+(defn pad_number
+  "adds spaces to the number"
+  [num padding]
+  (str
+    (apply str (take (- padding (num-len num)) (repeat " ")))
+    num))
+
+(defn get_padding_length
+  "given a board it returns the length number "
+  [board]
+  (count (str (last (filter number? (keys board))))))
+
 (defn render-pos
-  [board pos]
-  (let [num (nth letters (dec pos))]
+  "renders individual position"
+  [board padding pos]
+  (let [num_str (pad_number pos padding)]
     (if (get-in board [pos :pegged])
-        (colorize num :blue)
-        (colorize num :red))))
+        (colorize num_str :blue)
+        (colorize num_str :red))))
 
 (defn row-positions
   "Return all positions in the given row"
@@ -179,10 +197,13 @@
   (let [pad-length (/ (* (- rows row-num) pos-chars) 2)]
     (apply str (take pad-length (repeat " ")))))
 
+
 (defn render-row
   [board row-num]
-  (str (row-padding row-num (:rows board))
-       (clojure.string/join "  " (map (partial render-pos board) (row-positions row-num)))))
+  (let [num-padding (get_padding_length board)]
+   (str (row-padding row-num (:rows board))
+        (clojure.string/join "  " (map (partial render-pos board num-padding) (row-positions row-num))))))
+
 
 (defn print-board
   [board]
@@ -206,25 +227,27 @@
        default
        (clojure.string/lower-case input)))))
 
-(defn characters-as-strings
-  "Given a string, return a collection consisting of each individual
-  character"
-  [string]
-  (re-seq #"[a-zA-Z]" string))
-
 (defn clean-screen
   "Cleans the screen and mvoes cursor to the top"
   []
   (print (str (char 27) "[2J")) ; clear screen
   (print (str (char 27) "[;H"))) ; move cursor to the top left corner of the screen
 
+(defn parse-int [s]
+  (Integer. s))
+
+(defn get-ints
+  "function that parses given string and returns integers"
+  [text]
+  (map parse-int (re-seq #"\d+" text)))
+
 (defn prompt-move
   [board]
   (clean-screen)
   (println "Here's your board:")
   (print-board board)
-  (println "Move from where to where? Enter two letters:")
-  (let [input (map letter->pos (characters-as-strings (get-input)))]
+  (println "Move from where to where? Enter two numbers separated by space:")
+  (let [input (take 2 (get-ints (get-input)))]
     (if-let [new-board (make-move board (first input) (second input))]
       (successful-move new-board)
       (do
@@ -255,13 +278,13 @@
   [board]
   (println "Here's your board:")
   (print-board board)
-  (println "Remove which peg? [e]")
-  (prompt-move (remove-peg board (letter->pos (get-input "e")))))
+  (println "Remove which peg? [5]")
+  (prompt-move (remove-peg board (first (get-ints (get-input "5"))))))
 
 (defn prompt-rows
   []
-  (println "How many rows? [5], max is 6")
-  (let [rows (min 6 (Integer. (get-input 5)))
+  (println "How many rows? [5]")
+  (let [rows (Integer. (get-input 5))
         board (new-board rows)]
     (prompt-empty-peg board)))
 
